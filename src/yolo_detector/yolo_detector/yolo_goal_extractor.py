@@ -92,7 +92,7 @@ class YoloGoalExtractor(Node):
                 # class_id 是 'num_1', 'num_2', ..., 'num_8'
                 # 访问路径：Detection2D -> ObjectHypothesisWithPose -> ObjectHypothesis -> class_id
                 # self.get_logger().info(f"class_id:{det.results[0].hypothesis.class_id[4]}\n")
-                value = int(det.results[0].hypothesis.class_id[4])
+                value = int(det.results[0].hypothesis.class_id[0])
                 if value > max_value:
                     max_value = value
                     best_detection = det

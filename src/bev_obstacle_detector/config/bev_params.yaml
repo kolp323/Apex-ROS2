@@ -149,4 +149,4 @@ ipm_node:
     morph_kernel_size: 3
 
     # 障碍物膨胀半径 (单位：米) 形态学闭操作
-    inflation_radius: 0.0181
+    inflation_radius: 0.0155

@@ -488,7 +488,7 @@ class IPMNode(Node):
             
             # 发布调试图像 (Config 1)
             debug_bev_display_1 = cv2.bitwise_and(bev_image_1_np, bev_image_1_np, mask=mask_np_1)
-            bev_img_msg = self.bridge.cv2_to_imgmsg(debug_bev_display_1, "bgr8")
+            bev_img_msg = self.bridge.cv2_to_imgmsg(bev_image_2_np, "bgr8")
             bev_img_msg.header = header
             self.bev_image_pub.publish(bev_img_msg)
 

@@ -180,7 +180,7 @@ class ProximityDetectorNode(Node):
         
         if np.any(bev_intersection):
             object_in_bev = True
-            self.get_logger().warn('Red object detected in BEV zone!')
+            # self.get_logger().warn('Red object detected in BEV zone!')
 
         # 5. 发布 BEV 结果
         bev_pub_msg = Bool()
@@ -208,7 +208,7 @@ class ProximityDetectorNode(Node):
         # 检查重叠区域是否有任何像素
         if np.any(intersection):
             object_in_proximity = True
-            self.get_logger().warn('Yellow object detected in proximity zone!')
+            # self.get_logger().warn('Yellow object detected in proximity zone!')
             
         # 5. 发布近距离结果
         pub_msg = Bool()

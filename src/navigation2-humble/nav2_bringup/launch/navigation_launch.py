@@ -207,7 +207,7 @@ def generate_launch_description():
                     # 'detections_topic': '/yolo_detections', # yolo_node publish
                     'stop_line_topic': '/object_in_proximity',  # Bool: is stop or not
                     'max_linear_clear': 0.3,
-                    'stop_line_trigger_time': 0.6,
+                    'stop_line_trigger_time': 0.7,
                     'stop_line_hold_time': 1.5,
                     'obstacle_topic': '/obstacle_cv',
                 }],
@@ -285,7 +285,7 @@ def generate_launch_description():
                     'stop_line_topic': '/object_in_proximity',  # Bool: is stop or not
                     'max_linear_clear': 0.3,
                     'cautious_linear': 0.25,
-                    'stop_line_trigger_time': 0.6,
+                    'stop_line_trigger_time': 0.7,
                     'stop_line_hold_time': 1.5,
                     'obstacle_topic': '/obstacle_cv'
                 }],)

@@ -55,7 +55,7 @@ class CmdVelLimiter(Node):
         # 红色停车检测参数
         self.declare_parameter('red_stop_hold_time', 1.0)
         self.declare_parameter('red_stop_trigger_time', 0.1)
-        # self.declare_parameter('red_stop_cooldown', 5.0)
+        self.declare_parameter('red_stop_cooldown', 2.0)
         
 
         # --- 读取参数 ---
@@ -63,7 +63,8 @@ class CmdVelLimiter(Node):
         out_topic = self.get_parameter('output_cmd_vel').get_parameter_value().string_value
         stop_topic = self.get_parameter('stop_line_topic').get_parameter_value().string_value
         # obstacle_topic = self.get_parameter('obstacle_topic').get_parameter_value().string_value
-        red_stop_topic = self.get_parameter('red_stop_topic').get_parameter_value().string_value
+        # red_stop_topic = self.get_parameter('red_stop_topic').get_parameter_value().string_value
+        red_stop_topic = None
         scan_topic = self.get_parameter('scane_topic').get_parameter_value().string_value
 
 
@@ -75,7 +76,7 @@ class CmdVelLimiter(Node):
         
         self.red_stop_hold_time = float(self.get_parameter('red_stop_hold_time').get_parameter_value().double_value)
         self.red_stop_trigger_time = float(self.get_parameter('red_stop_trigger_time').get_parameter_value().double_value)
-        # self.red_stop_cooldown = self.stop_line_cooldown  
+        self.red_stop_cooldown = float(self.get_parameter('red_stop_cooldown').get_parameter_value().double_value)  
 
         # 状态机变量
         self.current_state = RobotState.CLEAR
@@ -196,7 +197,7 @@ class CmdVelLimiter(Node):
 
     def on_red_stop(self, msg: Bool) -> None:
         now = self.get_clock().now()
-        if msg.data:
+        if msg.data and self.cmd_x is not None:
             if self.latest_redstop_seen_time is None:
                 self.latest_redstop_seen_time = now
             self.red_stop_active = True
@@ -229,24 +230,27 @@ class CmdVelLimiter(Node):
             dt = (now - self.latest_redstop_seen_time).nanoseconds / 1e9
             # 障碍物进入鸟瞰图区域 + scan还未扫到
             if dt >= self.red_stop_trigger_time and self.check_scan_empty():
-                red_stop_triggered = True
+                if self.last_redstop_time is None:
+            # 第一次触发红灯停车，允许触发
+                    red_stop_triggered = True
+                else:
+                    since_last_redstop = (now - self.last_redstop_time).nanoseconds / 1e9
+                    if since_last_redstop >= self.red_stop_cooldown:
+                        red_stop_triggered = True
                 
 
 
         if self.current_state == RobotState.CLEAR:
             if stop_line_triggered:
-                self.get_logger().info('Stop line triggered -> STOPPING')
                 self.current_state = RobotState.STOPPING
                 self.state_start_time = now
             elif red_stop_triggered:
-                self.get_logger().info('Red stop triggered -> RED_STOPPING')
                 self.current_state = RobotState.RED_STOPPING
                 self.state_start_time = now
 
         elif self.current_state == RobotState.STOPPING:
             # STOPPING 表示开始减速/停车，立即转为 HOLDING（模拟减速完成）
             # 在真实系统你可能想等一段减速时间再进入 HOLDING
-            self.get_logger().info('Entering HOLDING (stopped)')
             self.current_state = RobotState.HOLDING
             self.state_start_time = now
             # 记录停车完成时间，用作后续 cooldown 判断
@@ -264,7 +268,6 @@ class CmdVelLimiter(Node):
                 self.state_start_time = now
 
         elif self.current_state == RobotState.RED_STOPPING:
-            self.get_logger().info('Entering RED_HOLDING (stopped for red)')
             self.current_state = RobotState.RED_HOLDING
             self.state_start_time = now
             self.last_redstop_time = now

@@ -96,8 +96,8 @@ class MissionManager(Node):
 
         self.get_logger().info('==========================bonus_goals_callback=========================\n')
         if len(marker_list) == 0:
-            self.get_logger().info('当前视野不含加分点')
-            self.get_logger().info('======================================================================\n\n')
+            # self.get_logger().info('当前视野不含加分点')
+            # self.get_logger().info('======================================================================\n\n')
             return
 
         self.get_logger().info(f'当前视野包含 {len(marker_list)} 个 Marker:\n')
@@ -112,8 +112,8 @@ class MissionManager(Node):
                 best_marker = marker
         
         if best_marker is None:
-            self.get_logger().info('未找到最佳加分点??????\n')
-            self.get_logger().info('======================================================================\n\n')
+            # self.get_logger().info('未找到最佳加分点??????\n')
+            # self.get_logger().info('======================================================================\n\n')
             return # 没看到有效的加分点
 
         # # 2. 决策：是否值得覆盖当前目标？
