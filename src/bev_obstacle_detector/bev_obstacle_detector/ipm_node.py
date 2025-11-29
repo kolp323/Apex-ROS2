@@ -83,6 +83,7 @@ class IPMNode(Node):
             ('distortion_coeffs', Parameter.Type.DOUBLE_ARRAY),
             ('morph_kernel_size', 5),
             ('inflation_radius', 0.015), # 【新增】膨胀半径参数
+            ('yolo_switch', 1), # 发送给yolo的图片使用哪套配置
         ]
         
         # 动态声明 IPM 参数
@@ -118,7 +119,8 @@ class IPMNode(Node):
 
         # --- 3. 获取通用参数 ---
         self.enable_vis = self.get_parameter('enable_vis').value
-
+        self.yolo_switch = self.get_parameter('yolo_switch').value
+        self.get_logger().info(f"yolo 正在使用第{self.yolo_switch}套配置")
         # 话题
         self.image_topic = self.get_parameter('image_topic').value
         self.pointcloud_topic = self.get_parameter('pointcloud_topic').value
@@ -486,9 +488,11 @@ class IPMNode(Node):
             bev_image_1_np = (bev_gpu_1.squeeze().permute(1, 2, 0).cpu().numpy() * 255.0).astype(np.uint8)
             bev_image_2_np = (bev_gpu_2.squeeze().permute(1, 2, 0).cpu().numpy() * 255.0).astype(np.uint8)
             
-            # 发布调试图像 (Config 1)
-            debug_bev_display_1 = cv2.bitwise_and(bev_image_1_np, bev_image_1_np, mask=mask_np_1)
-            bev_img_msg = self.bridge.cv2_to_imgmsg(bev_image_2_np, "bgr8")
+            # 发布调试图像
+            if self.yolo_switch == 1:
+                bev_img_msg = self.bridge.cv2_to_imgmsg(bev_image_1_np, "bgr8")
+            else:
+                bev_img_msg = self.bridge.cv2_to_imgmsg(bev_image_2_np, "bgr8")
             bev_img_msg.header = header
             self.bev_image_pub.publish(bev_img_msg)
 
@@ -505,6 +509,7 @@ class IPMNode(Node):
                          cv2.circle(vis_img, (int(pt[0]), int(pt[1])), 5, (0, 0, 255), -1)
                 cv2.imshow("1. Undistorted Image (PyTorch)", vis_img)
                 # 显示 BEV 结果
+                debug_bev_display_1 = cv2.bitwise_and(bev_image_1_np, bev_image_1_np, mask=mask_np_1)
                 debug_bev_display_2 = cv2.bitwise_and(bev_image_2_np, bev_image_2_np, mask=mask_np_2)
                 cv2.imshow("2.1 BEV Result (Config 1)", debug_bev_display_1)
                 cv2.imshow("2.2 BEV Result (Config 2)", debug_bev_display_2)
