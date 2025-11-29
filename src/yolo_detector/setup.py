@@ -39,9 +39,10 @@ setup(
             'cmd_vel_limiter = yolo_detector.cmd_vel_limiter:main',
             'image_saver_byhand = yolo_detector.image_saver_byhand:main',
             'image_saver = yolo_detector.image_saver:main',
-            'yolo_goal_extractor = yolo_detector.yolo_goal_extractor:main',
+            # 'yolo_goal_extractor = yolo_detector.yolo_goal_extractor:main',
             'mission_manager = yolo_detector.mission_manager:main',
             'test_node = yolo_detector.test_node:main',
+            'mock_yolo_node = yolo_detector.mock_yolo_node:main',
         ],
     },
 )

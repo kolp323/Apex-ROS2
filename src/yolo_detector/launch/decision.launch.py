@@ -1,29 +1,22 @@
+# launch/mission_manager.launch.py
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch_ros.actions import Node
 
 def generate_launch_description():
+    pkg_dir = get_package_share_directory('yolo_detector') # 假设在同一个包
     
-    pkg_dir = get_package_share_directory('yolo_detector')
+    params_file = os.path.join(pkg_dir, 'config', 'mission_manager_params.yaml')
 
-    # 1. 包含 yolo_extractor.launch.py
-    yolo_extractor_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(pkg_dir, 'launch', 'yolo_extractor.launch.py')
-        )
+    mission_manager_node = Node(
+        package='yolo_detector', # 假设在同一个包
+        executable='mission_manager',    # 新的 Python 脚本
+        name='mission_manager',
+        output='screen',
+        parameters=[params_file]
     )
 
-    # 2. 包含 mission_manager.launch.py
-    mission_manager_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(pkg_dir, 'launch', 'mission_manager.launch.py')
-        )
-    )
-
-    # 3. 返回包含这两个子 launch 文件的 LaunchDescription
     return LaunchDescription([
-        yolo_extractor_launch,
-        mission_manager_launch
+        mission_manager_node
     ])
