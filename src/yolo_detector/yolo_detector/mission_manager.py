@@ -7,17 +7,19 @@ from rclpy.duration import Duration
 from rclpy.time import Time as RclpyTime
 import math # 【新增】用于计算距离
 
+from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped, Point
 from action_msgs.msg import GoalStatus
 from nav2_msgs.action import NavigateToPose
 from vision_msgs.msg import Detection2DArray
+from visualization_msgs.msg import MarkerArray, Marker
 
 import tf2_ros
 import tf2_geometry_msgs
 from tf2_ros import Buffer, TransformListener, TransformException
 
 # 导入 GoalConverter
-from bev_obstacle_detector.goal_converter import GoalConverter 
+from yolo_detector.goal_converter import GoalConverter 
 
 class MissionManager(Node):
     
@@ -33,7 +35,7 @@ class MissionManager(Node):
             namespace='',
             parameters=[
                 ('final_goal_topic', '/rviz_final_goal'),
-                ('yolo_detection_topic', '/yolo/detections'), 
+                ('yolo_detection_topic', '/yolo_detections'), 
                 ('nav_action_server', '/navigate_to_pose'),
                 ('robot_base_frame', 'body'),
                 ('global_frame', 'map'),
@@ -46,7 +48,11 @@ class MissionManager(Node):
                 
                 # IPM 参数
                 ('bev_width', 640), ('bev_height', 480), ('world_width_m', 2.0),
-                ('world_height_m', 3.0), ('origin_offset_x_m', 0.5), ('origin_offset_y_m', 1.0)
+                ('world_height_m', 3.0), ('origin_offset_x_m', 0.5), ('origin_offset_y_m', 1.0),
+
+                # 调试参数
+                ('marker_array_topic', '/debug/goal'),
+                ('enable_debug', False),
             ]
         )
         
@@ -62,6 +68,8 @@ class MissionManager(Node):
         self.BONUS_GOAL_TIMEOUT_SEC = self.get_parameter('bonus_goal_timeout').value
         self.MISS_THRESHOLD_DIST = self.get_parameter('miss_threshold_dist').value
         self.GOAL_REPUBLISH_THRESH = self.get_parameter('goal_republish_thresh').value
+        self.MARKER_ARRAY_TOPIC = self.get_parameter('marker_array_topic').value
+        self.enable_debug = self.get_parameter('enable_debug').get_parameter_value().bool_value
 
         # 初始化 GoalConverter
         ipm_params = {
@@ -95,6 +103,10 @@ class MissionManager(Node):
         self.create_subscription(Detection2DArray, yolo_detection_topic, self.yolo_detection_callback, 10)
         self.nav_to_pose_client = ActionClient(self, NavigateToPose, nav_action_server)
 
+        if self.enable_debug:
+            self.marker_pub = self.create_publisher(MarkerArray, self.MARKER_ARRAY_TOPIC, 10)
+            self.get_logger().info(f"启用调试模式")
+
         # 监控定时器
         self.monitor_timer = self.create_timer(0.1, self.monitor_goal_status)
 
@@ -109,10 +121,11 @@ class MissionManager(Node):
                 target_frame,
                 pose.header.frame_id,
                 rclpy.time.Time(),
-                timeout=Duration(self.tf_timeout_seconds)
+                timeout=Duration(seconds=self.tf_timeout_seconds)
             )
             return tf2_geometry_msgs.do_transform_pose(pose.pose, transform)
         except TransformException as e:
+            self.get_logger().warn(f"TF 变换失败 ({self.robot_base_frame} -> {target_frame}): {e}")
             return None
 
     def calc_distance(self, pose1: PoseStamped, pose2: PoseStamped) -> float:
@@ -120,7 +133,63 @@ class MissionManager(Node):
         dx = pose1.pose.position.x - pose2.pose.position.x
         dy = pose1.pose.position.y - pose2.pose.position.y
         return math.sqrt(dx*dx + dy*dy)
+    # --------------------------------------------------------------------------
+    # --- 辅助函数：Marker 可视化 ---
+    # --------------------------------------------------------------------------
+    def publish_current_goal_marker(self):
+        """将当前活跃目标 (Final 或 Bonus) 发布到 RViz"""
+        if not self.enable_debug:
+            return
 
+        marker_array = MarkerArray()
+        
+        # 1. 删除旧标记
+        delete_marker = Marker(header=self.get_current_header(), ns="active_goal", action=Marker.DELETEALL)
+        marker_array.markers.append(delete_marker)
+
+        if self.current_active_pose_map is None:
+            self.marker_pub.publish(marker_array)
+            return
+
+        # 2. 创建新的活动目标标记
+        marker = Marker(header=self.get_current_header(), ns="active_goal", action=Marker.ADD)
+        marker.id = 1
+        
+        # 标记类型和颜色
+        if self.current_active_goal_type == 'FINAL':
+            marker.type = Marker.ARROW
+            marker.color.r, marker.color.g, marker.color.b, marker.color.a = 0.0, 0.0, 1.0, 1.0 # 蓝色 (终点)
+            text = "FINAL"
+        else: # BONUS
+            marker.type = Marker.SPHERE
+            marker.color.r, marker.color.g, marker.color.b, marker.color.a = 1.0, 0.5, 0.0, 1.0 # 橙色 (奖励)
+            text = f"BONUS ({self.current_active_goal_value})"
+            
+        marker.pose = self.current_active_pose_map.pose
+        marker.scale.x, marker.scale.y, marker.scale.z = 0.5, 0.5, 0.5
+        marker.lifetime = Duration(seconds=0.5).to_msg() # 频繁刷新
+        marker_array.markers.append(marker)
+
+        # 3. 创建文本标记
+        text_marker = Marker(header=self.get_current_header(), ns="active_goal_label", action=Marker.ADD)
+        text_marker.id = 2
+        text_marker.type = Marker.TEXT_VIEW_FACING
+        text_marker.pose = self.current_active_pose_map.pose
+        text_marker.pose.position.z += 0.6
+        text_marker.text = text
+        text_marker.scale.z = 0.3
+        text_marker.color.r, text_marker.color.g, text_marker.color.b, text_marker.color.a = 1.0, 1.0, 1.0, 1.0
+        text_marker.lifetime = Duration(seconds=0.5).to_msg()
+        marker_array.markers.append(text_marker)
+        
+        self.marker_pub.publish(marker_array)
+
+    def get_current_header(self):
+        """获取带有当前时间戳和全局 Frame ID 的 Header"""
+        header = Header()
+        header.stamp = self.get_clock().now().to_msg()
+        header.frame_id = self.global_frame
+        return header
     # --------------------------------------------------------------------------
     # --- 核心回调 ---
     # --------------------------------------------------------------------------
@@ -158,6 +227,7 @@ class MissionManager(Node):
 
         # 4. 几何过滤：是否太近？
         if robot_x < self.min_forward_dist:
+            self.get_logger().info(f"[检测回调]：目标距离过近 ({robot_x:.2f}m)，不发送。")
             return
 
         # 5. 转换到 Map Frame
@@ -191,7 +261,7 @@ class MissionManager(Node):
                     should_send_goal = True
                 else:
                     # 距离变化很小，忽略本次检测，避免 Nav2 重规划
-                    # self.get_logger().debug(f"防抖：目标位置稳定 (偏离 {dist:.2f}m)，跳过。")
+                    self.get_logger().debug(f"防抖：目标位置稳定 (偏离 {dist:.2f}m)，跳过。")
                     should_send_goal = False
             else:
                 # 这种边缘情况（价值相同但类型不同？）通常直接发送
@@ -199,8 +269,12 @@ class MissionManager(Node):
 
         # 执行发送
         if should_send_goal:
+            self.get_logger().info(f"[检测回调]：尝试发送新目标 {pose_in_map.pose} 价值{max_value}。")
             self.send_new_goal(pose_in_map, max_value, 'BONUS')
             self.state = self.STATE_NAV_BONUS
+            # 【新增】目标更新时，立即刷新可视化
+            if self.enable_debug:
+                self.publish_current_goal_marker()
 
     # --------------------------------------------------------------------------
     # --- 实时监控逻辑 ---
@@ -224,15 +298,23 @@ class MissionManager(Node):
 
         dist_x = pose_in_body_now.position.x
         
-        if dist_x < self.MISS_THRESHOLD:
+        if dist_x < self.MISS_THRESHOLD_DIST:
             self.get_logger().warn(f"加分点已到达或错过 (X={dist_x:.2f}m)，放弃并恢复终点。")
             self.recover_to_final()
+        
+        # 【新增】如果开启了调试，持续刷新目标标记
+        if self.enable_debug and self.state != self.STATE_IDLE:
+             self.publish_current_goal_marker()
 
     def recover_to_final(self):
         if self.final_goal_pose:
             self.get_logger().info(">>> 恢复导航至终点...")
             self.send_new_goal(self.final_goal_pose, self.FINAL_GOAL_VALUE, 'FINAL')
             self.state = self.STATE_NAV_FINAL
+            # 【新增】目标被清除时，刷新可视化
+            if self.enable_debug:
+                self.publish_current_goal_marker()
+
         else:
             self.get_logger().error("尝试恢复但无终点信息！")
             self.state = self.STATE_IDLE
@@ -251,7 +333,13 @@ class MissionManager(Node):
         self.current_active_goal_value = value
         self.current_active_goal_type = goal_type
         self.current_active_pose_map = pose_stamped 
-        
+
+        # 如果是 Bonus 目标，重置开始时间
+        if goal_type == 'BONUS':
+            self.active_bonus_start_time = self.get_clock().now()
+        else:
+            self.active_bonus_start_time = None 
+
         future = self.nav_to_pose_client.send_goal_async(goal_msg)
         future.add_done_callback(self.goal_response_callback)
 
@@ -272,6 +360,9 @@ class MissionManager(Node):
                 self.get_logger().info("TASK FINISHED: 到达终点。")
                 self.state = self.STATE_IDLE
                 self.final_goal_pose = None
+                # 【新增】任务完成时，清除标记
+                if self.enable_debug:
+                    self.publish_current_goal_marker()
             elif self.current_active_goal_type == 'BONUS':
                 self.get_logger().info("Bonus Reached: 到达加分点。")
                 self.recover_to_final()
@@ -280,9 +371,10 @@ class MissionManager(Node):
             pass 
             
         else: # ABORTED / LOST
-            self.get_logger().warn(f"Nav2 失败 ({status})，尝试恢复终点...")
-            if self.final_goal_pose:
-                self.recover_to_final()
+            pass
+            # self.get_logger().warn(f"Nav2 失败 ({status})，尝试恢复终点...")
+            # if self.final_goal_pose:
+                # self.recover_to_final()
 
 def main(args=None):
     rclpy.init(args=args)
