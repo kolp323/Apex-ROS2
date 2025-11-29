@@ -11,6 +11,7 @@ ipm_node:
     
     # 发布的鸟瞰图障碍物点云话题 (给 Costmap)
     pointcloud_topic: "/bev/obstacles"
+    # pointcloud_topic: "/debug"
     
     # (可选) 发布的调试用鸟瞰图图像话题
     bev_debug_image_topic: "/bev/debug_image"
