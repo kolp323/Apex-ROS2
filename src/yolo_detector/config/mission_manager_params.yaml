@@ -14,7 +14,7 @@ mission_manager:
     final_goal_value: -1
     min_forward_dist: 0.13      # 发送前检测：离小车过近的目标不会发送
     tf_timeout_seconds: 0.5     # 允许的tf超时秒数
-    bonus_goal_timeout: 2.5     # 状态监测：超过多少秒每到达目标点直接取消
+    bonus_goal_timeout: 1.6     # 状态监测：超过多少秒每到达目标点直接取消
     miss_threshold_dist: 0.08   # 状态监测：放弃已经到达或错过的目标，目标点在body系x坐标小于该值直接取消
     goal_republish_thresh: 0.1  # 防抖阈值：两次目标点之间不超过此距离不会重复发送
 

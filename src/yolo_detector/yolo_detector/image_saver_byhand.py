@@ -63,15 +63,15 @@ class ImageSaver(Node):
             self.get_logger().error(f'Failed to convert image: {e}')
             return
         
-        src_points_1 = [201.0, 357.0, 442.0, 356.0, 558.0, 447.0, 89.0, 452.0]
-        src_points_2 = [155.0, 311.0, 464.0, 313.0, 579.0, 358.0, 47.0, 360.0] 
-        src_pts_1 = np.float32(src_points_1).reshape(4, 2)
-        src_pts_2 = np.float32(src_points_2).reshape(4, 2)
+        # src_points_1 = [201.0, 357.0, 442.0, 356.0, 558.0, 447.0, 89.0, 452.0]
+        # src_points_2 = [155.0, 311.0, 464.0, 313.0, 579.0, 358.0, 47.0, 360.0] 
+        # src_pts_1 = np.float32(src_points_1).reshape(4, 2)
+        # src_pts_2 = np.float32(src_points_2).reshape(4, 2)
 
-        for pt in src_pts_1:
-                    cv2.circle(cv_image, (int(pt[0]), int(pt[1])), 5, (0, 255, 0), -1)
-        for pt in src_pts_2:
-                    cv2.circle(cv_image, (int(pt[0]), int(pt[1])), 5, (0, 0, 255), -1)
+        # for pt in src_pts_1:
+        #             cv2.circle(cv_image, (int(pt[0]), int(pt[1])), 5, (0, 255, 0), -1)
+        # for pt in src_pts_2:
+        #             cv2.circle(cv_image, (int(pt[0]), int(pt[1])), 5, (0, 0, 255), -1)
 
         # 显示图像
         cv2.imshow("Camera Feed | Press 's' to save, 'q' to quit", cv_image)

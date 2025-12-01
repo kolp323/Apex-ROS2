@@ -358,11 +358,13 @@ class MissionManager(Node):
         if status == GoalStatus.STATUS_SUCCEEDED:
             if self.current_active_goal_type == 'FINAL':
                 self.get_logger().info("TASK FINISHED: 到达终点。")
-                self.state = self.STATE_IDLE
-                self.final_goal_pose = None
+                # self.state = self.STATE_IDLE
+                # self.final_goal_pose = None
+                self.state = self.STATE_NAV_FINAL
+                self.recover_to_final()
                 # 【新增】任务完成时，清除标记
                 if self.enable_debug:
-                    self.publish_current_goal_marker()
+                    self.publish_current_goal_marke()
             elif self.current_active_goal_type == 'BONUS':
                 self.get_logger().info("Bonus Reached: 到达加分点。")
                 self.recover_to_final()
