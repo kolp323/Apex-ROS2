@@ -20,13 +20,24 @@ mission_manager:
 
     # --- IPM 标定参数 (用于 GoalConverter) ---
     # 这些参数必须与 ipm_node 使用的一致
-    # 远场
+    # 新远场
     bev_width: 640
     bev_height: 480
-    world_width_m: 0.448
-    world_height_m: 0.324
-    origin_offset_x_m: 0.457
-    origin_offset_y_m: 0.225
+    src_points: [149.0, 304.0, 495.0, 303.0, 629.0, 349.0, 38.0, 355.0]
+    dst_points: [0.0, 0.0, 640.0, 0.0, 640.0, 480.0, 0.0, 480.0] 
+    world_width_m: 0.500  
+    world_height_m: 0.324  
+    origin_offset_x_m: 0.457  
+    origin_offset_y_m: 0.227
+
+
+    # # 远场
+    # bev_width: 640
+    # bev_height: 480
+    # world_width_m: 0.448
+    # world_height_m: 0.324
+    # origin_offset_x_m: 0.457
+    # origin_offset_y_m: 0.225
     ## 近场
     # world_width_m: 0.244
     # world_height_m: 0.273

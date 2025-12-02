@@ -10,7 +10,8 @@ import math # 【新增】用于计算距离
 from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped, Point
 from action_msgs.msg import GoalStatus
-from nav2_msgs.action import NavigateToPose
+# from nav2_msgs.action import NavigateToPose
+from nav2_msgs.action import NavigateThroughPoses
 from vision_msgs.msg import Detection2DArray
 from visualization_msgs.msg import MarkerArray, Marker
 
@@ -101,7 +102,8 @@ class MissionManager(Node):
         # --- 3. ROS 接口 ---
         self.create_subscription(PoseStamped, final_goal_topic, self.rviz_final_goal_callback, 10)
         self.create_subscription(Detection2DArray, yolo_detection_topic, self.yolo_detection_callback, 10)
-        self.nav_to_pose_client = ActionClient(self, NavigateToPose, nav_action_server)
+        # self.nav_to_pose_client = ActionClient(self, NavigateToPose, nav_action_server)
+        self.nav_to_pose_client = ActionClient(self, NavigateThroughPoses, 'navigate_through_poses')
 
         if self.enable_debug:
             self.marker_pub = self.create_publisher(MarkerArray, self.MARKER_ARRAY_TOPIC, 10)
@@ -327,18 +329,29 @@ class MissionManager(Node):
            self.current_active_goal_handle.status == GoalStatus.STATUS_EXECUTING:
             self.current_active_goal_handle.cancel_goal_async()
 
-        goal_msg = NavigateToPose.Goal()
-        goal_msg.pose = pose_stamped
+        # goal_msg = NavigateToPose.Goal()
+        # goal_msg.pose = pose_stamped
 
-        self.current_active_goal_value = value
-        self.current_active_goal_type = goal_type
-        self.current_active_pose_map = pose_stamped 
+        # self.current_active_goal_value = value
+        # self.current_active_goal_type = goal_type
+        # self.current_active_pose_map = pose_stamped 
 
-        # 如果是 Bonus 目标，重置开始时间
-        if goal_type == 'BONUS':
-            self.active_bonus_start_time = self.get_clock().now()
+        # # 如果是 Bonus 目标，重置开始时间
+        # if goal_type == 'BONUS':
+        #     self.active_bonus_start_time = self.get_clock().now()
+        # else:
+        #     self.active_bonus_start_time = None 
+        # --- 修改开始 ---
+        goal_msg = NavigateThroughPoses.Goal()
+        
+        # 如果是 BONUS 任务，且已知终点，则构建 [加分点, 终点] 序列
+        if goal_type == 'BONUS' and self.final_goal_pose is not None:
+            # 注意：这里假设 final_goal_pose 也是 PoseStamped 且 Frame 一致
+            goal_msg.poses = [pose_stamped, self.final_goal_pose]
+            self.get_logger().info(f"发送序列目标: Bonus -> Final")
         else:
-            self.active_bonus_start_time = None 
+            # 如果只是去终点，或者没有终点信息，列表里只放一个
+            goal_msg.poses = [pose_stamped]
 
         future = self.nav_to_pose_client.send_goal_async(goal_msg)
         future.add_done_callback(self.goal_response_callback)
