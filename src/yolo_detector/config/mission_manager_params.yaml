@@ -9,7 +9,10 @@ mission_manager:
     
     robot_base_frame: "body"
     global_frame: "map"
-    
+    goal_reached_dist: 0.2
+    'goal_a': [6.020, 0.438, 0.0, 0.0, 0.0, 0.347, 0.999]
+    'goal_b': [7.179, 5.299, 0.0, 0.0, 0.0, 0.665, 0.7466]
+
     # --- 决策逻辑 ---
     final_goal_value: -1
     min_forward_dist: 0.13      # 发送前检测：离小车过近的目标不会发送
