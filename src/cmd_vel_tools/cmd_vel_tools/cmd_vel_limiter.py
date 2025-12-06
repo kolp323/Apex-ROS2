@@ -63,8 +63,8 @@ class CmdVelLimiter(Node):
         out_topic = self.get_parameter('output_cmd_vel').get_parameter_value().string_value
         stop_topic = self.get_parameter('stop_line_topic').get_parameter_value().string_value
         # obstacle_topic = self.get_parameter('obstacle_topic').get_parameter_value().string_value
-        # red_stop_topic = self.get_parameter('red_stop_topic').get_parameter_value().string_value
-        red_stop_topic = None
+        red_stop_topic = self.get_parameter('red_stop_topic').get_parameter_value().string_value
+        # red_stop_topic = None
         scan_topic = self.get_parameter('scane_topic').get_parameter_value().string_value
 
 
