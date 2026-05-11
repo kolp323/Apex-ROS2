@@ -1,5 +1,39 @@
-.vscode/
+# ROS 2 / colcon generated files
 build/
 install/
 log/
+Log/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Native build artifacts
+*.o
+*.so
+*.a
+*.dll
+*.exe
+*.out
+
+# CMake artifacts
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Editor and local machine files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Runtime logs and temporary files
+*.log
+*.tmp
+*.bak
 runs/

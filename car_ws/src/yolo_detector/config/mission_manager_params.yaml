@@ -1,0 +1,61 @@
+# config/mission_manager_params.yaml
+mission_manager:
+  ros__parameters:
+    
+    # --- 话题与坐标系 ---
+    final_goal_topic: "/goal_pose"
+    yolo_detection_topic: "/yolo_detections" # 直接订阅 YOLO
+    nav_action_server: "/navigate_to_pose"
+    
+    robot_base_frame: "body"
+    global_frame: "map"
+    goal_arrival_thresh: 0.3 # 如果小车与当前终点的距离小于此值，强制认为到达，切换下一关
+    mission_waypoints: [
+      # Goal A
+      6.020, 0.438, 0.0, 0.0, 0.0, 0.347, 0.999,
+      # Goal B
+      7.179, 5.299, 0.0, 0.0, 0.0, 0.665, 0.7466,
+      # Goal C
+      2.108, 5.544, 0.0, 0.0, 0.0, 0.0216, 0.9998
+    ]
+    # 'goal_a': [6.020, 0.438, 0.0, 0.0, 0.0, 0.347, 0.999]
+    # 'goal_b': [7.179, 5.299, 0.0, 0.0, 0.0, 0.665, 0.7466]
+    # 'goal_c': [2.108, 5.544, 0.0, 0.0, 0.0, 0.0216, 0.9998]
+
+
+    # --- 决策逻辑 ---
+    final_goal_value: -1
+    min_forward_dist: 0.13      # 发送前检测：离小车过近的目标不会发送
+    tf_timeout_seconds: 0.5     # 允许的tf超时秒数
+    bonus_goal_timeout: 1.6     # 状态监测：超过多少秒每到达目标点直接取消
+    miss_threshold_dist: 0.08   # 状态监测：放弃已经到达或错过的目标，目标点在body系x坐标小于该值直接取消
+    goal_republish_thresh: 0.1  # 防抖阈值：两次目标点之间不超过此距离不会重复发送
+
+    # --- IPM 标定参数 (用于 GoalConverter) ---
+    # 这些参数必须与 ipm_node 使用的一致
+    # 新远场
+    bev_width: 640
+    bev_height: 480
+    src_points: [149.0, 304.0, 495.0, 303.0, 629.0, 349.0, 38.0, 355.0]
+    dst_points: [0.0, 0.0, 640.0, 0.0, 640.0, 480.0, 0.0, 480.0] 
+    world_width_m: 0.500  
+    world_height_m: 0.324  
+    origin_offset_x_m: 0.457  
+    origin_offset_y_m: 0.227
+
+
+    # # 远场
+    # bev_width: 640
+    # bev_height: 480
+    # world_width_m: 0.448
+    # world_height_m: 0.324
+    # origin_offset_x_m: 0.457
+    # origin_offset_y_m: 0.225
+    ## 近场
+    # world_width_m: 0.244
+    # world_height_m: 0.273
+    # origin_offset_x_m: 0.325
+    # origin_offset_y_m: 0.122
+
+    marker_array_topic: /debug/goal
+    enable_debug: false
