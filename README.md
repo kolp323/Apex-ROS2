@@ -41,6 +41,7 @@ Apex-ROS2/
 │   └── src/
 │       ├── livox_ros_driver2/      # Livox ROS 2 driver and MID360 launch/config files
 │       └── pointcloud_to_laserscan-humble/
+├── install_components.sh           # Ubuntu/ROS dependency installation helper
 └── README.md
 ```
 
@@ -118,16 +119,16 @@ Apex-ROS2 is organized as a layered autonomous driving stack.
 | `car_ws/src/bev_obstacle_detector/launch/bev_detector.launch.py` | Starts BEV obstacle detection. |
 | `car_ws/src/costmap_process/launch/map_vis.launch.py` | Starts costmap/map visualization nodes. |
 
-## Environment
+## Environment and Build
 
 Recommended base environment:
 
 - Ubuntu 22.04
 - ROS 2 Humble
 - Python 3.10
-- `colcon`
-- Nav2 dependencies
-- Livox SDK / Livox ROS 2 driver dependencies
+- `colcon`, `rosdep`, CMake and GNU build tools
+- Nav2, image transport, PCL, robot localization, BehaviorTree.CPP and OMPL dependencies
+- Livox-SDK2 and Livox ROS Driver 2 for MID360 LiDAR input
 - Astra and USB camera driver dependencies
 - Python perception dependencies such as OpenCV, NumPy, PyTorch and YOLO-related packages
 
@@ -139,28 +140,69 @@ Hardware expected by the integrated launch files:
 - Astra camera and/or USB camera
 - Robot serial controller, defaulting to `/dev/wheeltec_controller` in `base_serial.launch.py`
 
-## Build
+### 1. Install ROS dependencies
 
-Source ROS 2 first if it is not already active:
+After installing ROS 2 Humble, install the package dependencies used by the workspace:
+
+```bash
+sudo apt update
+sudo apt install -y python3-colcon-common-extensions python3-rosdep python3-pip git cmake build-essential
+sudo rosdep init || true
+rosdep update
+bash install_components.sh
+```
+
+`install_components.sh` installs the ROS Humble camera, image, diagnostics, robot localization, PCL, BehaviorTree.CPP, OMPL, Ceres and related packages used by the robot workspace. On Jetson-class devices, it also creates a 4 GB swap file when `/swapfile` is not already present.
+
+### 2. Install Livox-SDK2
+
+Livox ROS Driver 2 links against Livox-SDK2, so install the SDK before building `ws_livox`:
+
+```bash
+git clone https://github.com/Livox-SDK/Livox-SDK2.git
+cd Livox-SDK2
+mkdir -p build
+cd build
+cmake ..
+make -j$(nproc)
+sudo make install
+sudo ldconfig
+```
+
+Return to the repository root before building the ROS workspaces.
+
+### 3. Build the Livox workspace
+
+The Livox driver provides a helper script for ROS 2 Humble:
 
 ```bash
 source /opt/ros/humble/setup.bash
+cd ws_livox/src/livox_ros_driver2
+./build.sh humble
+cd ../../..
+source install/setup.bash
 ```
 
-Build the Livox workspace first:
+If you build the whole workspace directly, keep the same ROS environment active:
 
 ```bash
+source /opt/ros/humble/setup.bash
 cd ws_livox
-colcon build --symlink-install
+colcon build --symlink-install --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humble
 source install/setup.bash
+cd ..
 ```
 
-Then build the main robot workspace:
+### 4. Build the main robot workspace
 
 ```bash
-cd ../car_ws
+source /opt/ros/humble/setup.bash
+source ws_livox/install/setup.bash
+cd car_ws
+rosdep install --from-paths src --ignore-src -r -y
 colcon build --symlink-install
 source install/setup.bash
+cd ..
 ```
 
 For a new terminal, source both workspaces in order:
@@ -169,6 +211,20 @@ For a new terminal, source both workspaces in order:
 source /opt/ros/humble/setup.bash
 source ws_livox/install/setup.bash
 source car_ws/install/setup.bash
+```
+
+### 5. RViz configuration
+
+The default Nav2 RViz view is stored at:
+
+```text
+car_ws/src/navigation2-humble/nav2_bringup/rviz/nav2_default_view.rviz
+```
+
+Use it when launching Nav2 with RViz or open it directly with:
+
+```bash
+rviz2 -d car_ws/src/navigation2-humble/nav2_bringup/rviz/nav2_default_view.rviz
 ```
 
 ## Run
