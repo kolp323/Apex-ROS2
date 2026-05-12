@@ -2,7 +2,7 @@
 
 Apex-ROS2 is a ROS 2 Humble intelligent vehicle workspace for autonomous driving competition scenarios. The project integrates chassis control, Livox MID360 LiDAR, Astra/USB camera drivers, FAST-LIO mapping, Nav2 navigation, YOLO-based perception, BEV obstacle detection, semantic costmap processing, velocity limiting, and custom ROS 2 messages into a complete robot software stack.
 
-本仓库是一个面向智能车比赛的 ROS 2 综合工程，包含车体底盘驱动、激光雷达与相机接入、建图定位、导航规划、视觉检测、障碍物感知、代价地图处理和速度控制等模块。
+本仓库是一个面向智能车比赛的 ROS 2 综合工程，包含车体底盘驱动、激光雷达与相机接入、建图定位、导航规划、视觉检测、BEV 障碍物感知、代价地图处理和速度控制等模块。
 
 ## Project Highlights
 
