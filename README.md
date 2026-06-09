@@ -22,7 +22,7 @@ The source code of this project is released under the [MIT License](LICENSE). Yo
 ### Documentation Authorship
 The **overall engineering architecture, project packaging, and documentation (including this README)** were independently designed and written by **Zhu Shouhe**. 
 
-We strongly encourage learning from our architectural design and code structure. However, out of respect for academic integrity and the original author's effort, we kindly request that developers **do not directly copy the repository's structural layout, documentation wording, or project presentation as their own independent work**. If our repository serves as a reference for your project's architecture or documentation, a proper citation or acknowledgment is highly appreciated.
+We strongly encourage learning from our architectural design and code structure. However, out of respect for academic integrity and the original author's effort, we kindly request that developers **do not directly copy the repository's structural layout, documentation wording, or project presentation**. If our repository serves as a reference for your project's architecture or documentation, a proper citation or acknowledgment is highly appreciated.
 
 ---
 
@@ -397,7 +397,7 @@ For integrated tests, start from `main_nav.launch.py` and disable hardware-depen
 ### 文档许可与包装声明
 本项目的**整体工程化包装、系统架构文档撰写及 README 维护**均由 **朱首赫** 独立完成。
 
-我们非常欢迎大家参考和借鉴本项目的架构设计与代码结构。但在开源分享的同时，也恳请各位开发者尊重原创作者的劳动成果与学术诚信：**请勿在未经授权的情况下，直接将本仓库的整体结构、文档文案或展示排版“原样照搬”并作为个人的独立成果进行展示。** 如果本项目在工程规范或文档架构上对您有所启发，在合理引用的同时注明出处，将是对开源贡献者最大的鼓励与支持。
+我们非常欢迎大家参考和借鉴本项目的架构设计与代码结构。但在开源分享的同时，也恳请各位开发者尊重原创作者的劳动成果与学术诚信：**请勿在未经授权的情况下，直接将本仓库的整体结构、文档文案或展示排版“原样照搬”。** 如果本项目在工程规范或文档架构上对您有所启发，在合理引用的同时注明出处，将是对开源贡献者最大的鼓励与支持。
 
 ---
 
