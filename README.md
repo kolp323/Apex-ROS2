@@ -4,11 +4,11 @@
 [![Ubuntu 22.04](https://img.shields.io/badge/Ubuntu-22.04-orange.svg)](https://releases.ubuntu.com/22.04/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[🇨🇳 中文文档 (Chinese Version)](#中文文档-chinese-version) | [🇬🇧 English Version](#english-version)
+[中文文档 (Chinese Version)](#中文文档-chinese-version) | [English Version](#english-version)
 
 ---
 
-## 🇨🇳 中文文档 (Chinese Version)
+## 中文文档 (Chinese Version)
 
 Apex-ROS2 是一个面向智能车比赛场景的 ROS 2 Humble 综合工程工作空间。它集成了底盘控制、Livox MID360 激光雷达、Astra/USB 相机、FAST-LIO 建图、Nav2 导航、YOLOv8 视觉感知、BEV 障碍物处理、语义代价地图、任务管理以及速度仲裁等模块，形成了一个可直接部署的机器人技术栈。
 
@@ -229,7 +229,7 @@ ros2 launch yolo_detector yolo_detect.launch.py enable_vis:=true
 ---
 <br>
 
-## 🇬🇧 English Version
+## English Version
 
 Apex-ROS2 is a ROS 2 Humble workspace for an autonomous Ackermann robot used in intelligent vehicle competition scenarios. It combines chassis control, Livox MID360 LiDAR, Astra/USB cameras, FAST-LIO mapping, Nav2 navigation, YOLOv8 perception, BEV obstacle processing, semantic costmap updates, mission management, and velocity arbitration into one deployable robot stack.
 
