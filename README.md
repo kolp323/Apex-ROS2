@@ -1,8 +1,30 @@
 # Apex-ROS2
 
+[🇨🇳 中文版 (Chinese Version)](#-中文文档-chinese-version)
+
 Apex-ROS2 is a ROS 2 Humble workspace for an autonomous Ackermann robot used in intelligent vehicle competition scenarios. It combines chassis control, Livox MID360 LiDAR, Astra/USB cameras, FAST-LIO mapping, Nav2 navigation, YOLOv8 perception, BEV obstacle processing, semantic costmap updates, mission management, and velocity arbitration into one deployable robot stack.
 
-本仓库是一个面向智能车比赛的 ROS 2 综合工程，包含车体底盘驱动、激光雷达与相机接入、建图定位、导航规划、视觉检测、BEV 障碍物感知、代价地图处理和速度控制等模块。
+## 👥 Team Contributions
+
+The Apex-ROS2 stack was collaboratively developed by our team, with core modules distributed as follows:
+
+| Team Member | Core Responsibilities | Main Packages | Work Highlights |
+| :--- | :--- | :--- | :--- |
+| **Zhu Shouhe** | Vision Detection, Decision Making, BEV Perception | `yolo_detector`, `bev_obstacle_detector`, Mission Manager | Implemented digit target recognition and state machine decision logic. Developed a low-level obstacle avoidance strategy based on Bird's-Eye View (BEV/IPM) and optimized the overall perception data pipeline. |
+| **Feng Xiyi** | Navigation Algorithms, Velocity Control | `navigation2-humble`, `cmd_vel_tools` | Responsible for parameter tuning of the Nav2 navigation stack planners. Designed and implemented the velocity control arbitration mechanism. |
+| **Xu Zhenyu** | Model Training, Costmap Modification | `yolo_detector` (Training), `costmap_process` | Responsible for training the YOLO target detection model. Developed the costmap modification mechanisms. |
+
+## 📜 License & Authorship Statement
+
+### Code License
+The source code of this project is released under the [MIT License](LICENSE). You are welcome to use, modify, and distribute the code for learning and development.
+
+### Documentation Authorship
+The **overall engineering architecture, project packaging, and documentation (including this README)** were independently designed and written by **Zhu Shouhe**. 
+
+We strongly encourage learning from our architectural design and code structure. However, out of respect for academic integrity and the original author's effort, we kindly request that developers **do not directly copy the repository's structural layout, documentation wording, or project presentation as their own independent work**. If our repository serves as a reference for your project's architecture or documentation, a proper citation or acknowledgment is highly appreciated.
+
+---
 
 ## Technical Stack
 
@@ -347,3 +369,62 @@ ros2 launch yolo_detector mission_manager.launch.py
 ```
 
 For integrated tests, start from `main_nav.launch.py` and disable hardware-dependent parts with launch arguments when testing away from the robot.
+
+
+<br><br>
+
+# 🇨🇳 中文文档 (Chinese Version)
+
+[🇬🇧 English Version (英文版)](#apex-ros2)
+
+本仓库是一个面向智能车比赛的 ROS 2 综合工程，包含车体底盘驱动、激光雷达与相机接入、建图定位、导航规划、视觉检测、BEV 障碍物感知、代价地图处理和速度控制等模块。
+
+## 👥 团队分工
+
+本项目由团队成员协同开发，核心模块的分工如下：
+
+| 团队成员 | 核心负责方向 | 关联功能包 | 工作亮点 |
+| :--- | :--- | :--- | :--- |
+| **朱首赫** | 视觉检测、状态决策与 BEV 感知 | `yolo_detector`, `bev_obstacle_detector`, 任务决策流 | 实现数字目标识别与状态机决策，开发基于鸟瞰图 (BEV/IPM) 的底层避障策略，优化了整体感知数据管线。 |
+| **冯曦熠** | 导航算法与控制滤波 | `navigation2-humble`, `cmd_vel_tools` | 负责 Nav2 导航栈规划器的调参，设计并实现了速度控制仲裁机制。 |
+| **许震宇** | 模型训练与代价地图 | `yolo_detector` (训练侧), `costmap_process` | 负责 YOLO 目标检测模型的训练，开发了代价地图修改机制。 |
+
+## 📜 开源协议与版权声明
+
+### 代码许可
+本项目的源代码采用 [MIT License](LICENSE) 开源协议。欢迎各位开发者基于此项目进行学习、修改与二次开发。
+
+### 文档许可与包装声明
+本项目的**整体工程化包装、系统架构文档撰写及 README 维护**均由 **朱首赫** 独立完成。
+
+我们非常欢迎大家参考和借鉴本项目的架构设计与代码结构。但在开源分享的同时，也恳请各位开发者尊重原创作者的劳动成果与学术诚信：**请勿在未经授权的情况下，直接将本仓库的整体结构、文档文案或展示排版“原样照搬”并作为个人的独立成果进行展示。** 如果本项目在工程规范或文档架构上对您有所启发，在合理引用的同时注明出处，将是对开源贡献者最大的鼓励与支持。
+
+---
+
+## 技术栈 (Technical Stack)
+
+- **运行环境**: Ubuntu 22.04, ROS 2 Humble, Python 3.10, `colcon`
+- **机器人平台**: Ackermann 移动底盘 (搭载 STM32 底层控制器)
+- **计算平台**: NVIDIA Jetson Orin Nano 级边缘计算设备
+- **传感器**: Livox MID360 激光雷达, Astra Pro Plus 深度相机, USB 摄像头, 底盘里程计/IMU
+- **定位建图**: FAST-LIO, AMCL/Nav2 定位, 点云转激光扫描数据转换
+- **导航控制**: Nav2 Humble, Smac Hybrid-A* 规划算法, Regulated Pure Pursuit 局部控制, 语义代价地图层
+- **视觉感知**: YOLOv8 目标检测, 基于 Mask 的相机距离检测, 基于 GPU 的 BEV/IPM 障碍物处理
+- **控制安全**: `cmd_vel` 滤波机制, 停车线状态机, 速度限制与障碍物分析
+
+## 核心功能包 (Main Packages)
+
+| 功能包 (Package) | 作用 (Role) |
+| --- | --- |
+| `yolo_detector` | YOLOv8 视觉检测、任务管理、状态机决策与系统启动入口 |
+| `turn_on_wheeltec_robot` | 底盘驱动、串口通信、TF 坐标树、EKF 滤波及传感器启动文件 |
+| `FAST_LIO_ROS2` | 基于 FAST-LIO 的激光惯性里程计建图与定位 |
+| `navigation2-humble` | 提供地图服务器、规划控制及生命周期管理的 Nav2 导航栈 |
+| `livox_ros_driver2` | Livox 激光雷达 (含 MID360) 的 ROS 2 驱动与配置文件 |
+| `bev_obstacle_detector` | 鸟瞰图 (BEV/IPM) 障碍物检测，多点云融合与速度障碍分析 |
+| `distance_detector` | 基于相机掩膜 (Mask) 的距离与危险区域检测 |
+| `costmap_process` | 语义地图处理、代价地图发布及可视化 |
+| `cmd_vel_tools` | 速度滤波、障碍物分析判断与防撞红区处理逻辑 |
+
+> 注：关于完整的编译、运行指南及详细的 Launch 文件说明，由于跨平台配置繁琐，请参考上方 [English Version](#apex-ros2) 中的技术细节描述。
+
