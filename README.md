@@ -8,7 +8,7 @@
 
 ---
 
-## 🇨🇳 中文文档 (Chinese Version)
+## 中文文档 (Chinese Version)
 
 Apex-ROS2 是一个面向智能车比赛场景的 ROS 2 Humble 综合工程工作空间。它集成了底盘控制、Livox MID360 激光雷达、Astra/USB 相机、FAST-LIO 建图、Nav2 导航、YOLOv8 视觉感知、BEV 障碍物处理、语义代价地图、任务管理以及速度仲裁等模块，形成了一个可直接部署的机器人技术栈。
 
