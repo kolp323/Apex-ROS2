@@ -4,22 +4,22 @@
 [![Ubuntu 22.04](https://img.shields.io/badge/Ubuntu-22.04-orange.svg)](https://releases.ubuntu.com/22.04/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[中文文档 (Chinese Version)](#-中文文档-chinese-version) | [English Version](#-english-version)
+[🇨🇳 中文文档 (Chinese Version)](#中文文档-chinese-version) | [🇬🇧 English Version](#english-version)
 
 ---
 
-## 中文文档 (Chinese Version)
+## 🇨🇳 中文文档 (Chinese Version)
 
 Apex-ROS2 是一个面向智能车比赛场景的 ROS 2 Humble 综合工程工作空间。它集成了底盘控制、Livox MID360 激光雷达、Astra/USB 相机、FAST-LIO 建图、Nav2 导航、YOLOv8 视觉感知、BEV 障碍物处理、语义代价地图、任务管理以及速度仲裁等模块，形成了一个可直接部署的机器人技术栈。
 
 ### 📑 目录
-- [技术栈](#-技术栈)
-- [系统架构](#-系统架构)
+- [技术栈](#️-技术栈)
+- [系统架构](#️-系统架构)
 - [技术亮点](#-技术亮点)
 - [项目结构](#-项目结构)
 - [核心功能包](#-核心功能包)
 - [核心 Launch 文件](#-核心-launch-文件)
-- [环境与构建](#-环境与构建)
+- [环境与构建](#️-环境与构建)
 - [运行指南](#-运行指南)
 - [运行流程](#-运行流程)
 - [开发与复现](#-开发与复现)
@@ -229,24 +229,24 @@ ros2 launch yolo_detector yolo_detect.launch.py enable_vis:=true
 ---
 <br>
 
-## English Version
+## 🇬🇧 English Version
 
 Apex-ROS2 is a ROS 2 Humble workspace for an autonomous Ackermann robot used in intelligent vehicle competition scenarios. It combines chassis control, Livox MID360 LiDAR, Astra/USB cameras, FAST-LIO mapping, Nav2 navigation, YOLOv8 perception, BEV obstacle processing, semantic costmap updates, mission management, and velocity arbitration into one deployable robot stack.
 
 ### 📑 Table of Contents
-- [Technical Stack](#-technical-stack-1)
-- [System Architecture](#-system-architecture-1)
-- [Method Highlights](#-method-highlights-1)
-- [Repository Structure](#-repository-structure-1)
-- [Main Packages](#-main-packages-1)
-- [Key Launch Files](#-key-launch-files-1)
-- [Environment and Build](#-environment-and-build-1)
-- [Run](#-run-1)
-- [Runtime Flow](#-runtime-flow-1)
-- [Reproduction Notes](#-reproduction-notes-1)
-- [Development Workflow](#-development-workflow-1)
-- [Team Contributions](#-team-contributions-1)
-- [License & Authorship Statement](#-license--authorship-statement-1)
+- [Technical Stack](#️-technical-stack)
+- [System Architecture](#️-system-architecture)
+- [Method Highlights](#-method-highlights)
+- [Repository Structure](#-repository-structure)
+- [Main Packages](#-main-packages)
+- [Key Launch Files](#-key-launch-files)
+- [Environment and Build](#️-environment-and-build)
+- [Run](#-run)
+- [Runtime Flow](#-runtime-flow)
+- [Reproduction Notes](#-reproduction-notes)
+- [Development Workflow](#-development-workflow)
+- [Team Contributions](#-team-contributions)
+- [License & Authorship Statement](#-license--authorship-statement)
 
 ### 🛠️ Technical Stack
 - **Runtime**: Ubuntu 22.04, ROS 2 Humble, Python 3.10, `colcon`
