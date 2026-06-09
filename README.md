@@ -1,33 +1,254 @@
 # Apex-ROS2
 
-[🇨🇳 中文版 (Chinese Version)](#-中文文档-chinese-version)
+[![ROS 2 Humble](https://img.shields.io/badge/ROS%202-Humble-blue.svg)](https://docs.ros.org/en/humble/)
+[![Ubuntu 22.04](https://img.shields.io/badge/Ubuntu-22.04-orange.svg)](https://releases.ubuntu.com/22.04/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Apex-ROS2 is a ROS 2 Humble workspace for an autonomous Ackermann robot used in intelligent vehicle competition scenarios. It combines chassis control, Livox MID360 LiDAR, Astra/USB cameras, FAST-LIO mapping, Nav2 navigation, YOLOv8 perception, BEV obstacle processing, semantic costmap updates, mission management, and velocity arbitration into one deployable robot stack.
-
-## 👥 Team Contributions
-
-The Apex-ROS2 stack was collaboratively developed by our team, with core modules distributed as follows:
-
-| Team Member | Core Responsibilities | Main Packages | Work Highlights |
-| :--- | :--- | :--- | :--- |
-| **Zhu Shouhe** | Vision Detection, Decision Making, BEV Perception | `yolo_detector`, `bev_obstacle_detector`, Mission Manager | Implemented digit target recognition and state machine decision logic. Developed a low-level obstacle avoidance strategy based on Bird's-Eye View (BEV/IPM) and optimized the overall perception data pipeline. |
-| **Feng Xiyi** | Navigation Algorithms, Velocity Control | `navigation2-humble`, `cmd_vel_tools` | Responsible for parameter tuning of the Nav2 navigation stack planners. Designed and implemented the velocity control arbitration mechanism. |
-| **Xu Zhenyu** | Model Training, Costmap Modification | `yolo_detector` (Training), `costmap_process` | Responsible for training the YOLO target detection model. Developed the costmap modification mechanisms. |
-
-## 📜 License & Authorship Statement
-
-### Code License
-The source code of this project is released under the [MIT License](LICENSE). You are welcome to use, modify, and distribute the code for learning and development.
-
-### Documentation Authorship
-The **overall engineering architecture, project packaging, and documentation (including this README)** were independently designed and written by **Zhu Shouhe**. 
-
-We strongly encourage learning from our architectural design and code structure. However, out of respect for academic integrity and the original author's effort, we kindly request that developers **do not directly copy the repository's structural layout, documentation wording, or project presentation**. If our repository serves as a reference for your project's architecture or documentation, a proper citation or acknowledgment is highly appreciated.
+[🇨🇳 中文文档 (Chinese Version)](#-中文文档-chinese-version) | [🇬🇧 English Version](#-english-version)
 
 ---
 
-## Technical Stack
+## 🇨🇳 中文文档 (Chinese Version)
 
+Apex-ROS2 是一个面向智能车比赛场景的 ROS 2 Humble 综合工程工作空间。它集成了底盘控制、Livox MID360 激光雷达、Astra/USB 相机、FAST-LIO 建图、Nav2 导航、YOLOv8 视觉感知、BEV 障碍物处理、语义代价地图、任务管理以及速度仲裁等模块，形成了一个可直接部署的机器人技术栈。
+
+### 📑 目录
+- [技术栈](#-技术栈)
+- [系统架构](#-系统架构)
+- [技术亮点](#-技术亮点)
+- [项目结构](#-项目结构)
+- [核心功能包](#-核心功能包)
+- [核心 Launch 文件](#-核心-launch-文件)
+- [环境与构建](#-环境与构建)
+- [运行指南](#-运行指南)
+- [运行流程](#-运行流程)
+- [开发与复现](#-开发与复现)
+- [团队分工](#-团队分工)
+- [开源协议与版权声明](#-开源协议与版权声明)
+
+### 🛠️ 技术栈
+- **运行环境**: Ubuntu 22.04, ROS 2 Humble, Python 3.10, `colcon`
+- **机器人平台**: Ackermann 移动底盘 (搭载 STM32 底层控制器)
+- **计算平台**: NVIDIA Jetson Orin Nano 级边缘计算设备
+- **传感器**: Livox MID360 激光雷达, Astra Pro Plus 深度相机, USB 摄像头, 底盘里程计/IMU
+- **定位建图**: FAST-LIO, AMCL/Nav2 定位, 点云转激光扫描数据转换 (PointCloud to LaserScan)
+- **导航控制**: Nav2 Humble, Smac Hybrid-A* 规划算法, Regulated Pure Pursuit 局部控制, 语义代价地图层
+- **视觉感知**: YOLOv8 目标检测, 基于 Mask 的相机距离检测, 基于 GPU 的 BEV/IPM 障碍物处理
+- **控制安全**: `cmd_vel` 滤波机制, 停车线状态机, 速度限制与障碍物分析
+
+### 🏗️ 系统架构
+Apex-ROS2 按照分层自动驾驶技术栈进行组织：
+1. **硬件与传感器层**:
+   - `turn_on_wheeltec_robot` 与底盘控制器通信并发布基础里程计数据。
+   - `livox_ros_driver2` 发布 MID360 点云。
+   - `ros2_astra_camera-master` 与 `usb_cam-ros2` 提供视觉输入。
+   - `wheeltec_robot_urdf` 提供机器人模型与可视化资源。
+2. **定位与建图层**:
+   - `FAST_LIO_ROS2` 运行激光惯性建图。
+   - Nav2 定位与地图服务器组件提供导航所需的地图和坐标系流。
+   - 点云转换模块将 3D 点云降维处理为二维 `LaserScan` 供各类避障算法使用。
+3. **感知层**:
+   - `yolo_detector` 运行基于 YOLOv8 的目标检测，用于识别数字目标和任务提示。
+   - `distance_detector` 监控被遮罩的相机区域，用于近场危险区域事件检测。
+   - `bev_obstacle_detector` 使用逆透视映射 (IPM) 将前视相机输入转换为鸟瞰图，以便处理障碍物。
+   - `costmap_process` 发布可与 Nav2 代价地图结合的语义层与可视化层。
+4. **决策与导航层**:
+   - Nav2 处理全局规划、局部控制、生命周期管理以及地图服务。
+   - 任务管理器 (Mission Manager) 负责对任务目标进行排序，进行目标去抖并协调感知与导航目标。
+5. **控制与安全层**:
+   - `cmd_vel_tools`、BEV 处理和距离检测在导航节点输出速度后、指令到达底盘前，进行二次滤波与安全判定。
+   - 包含正常行驶、受控停车以及保持/冷却等流程的状态机控制。
+
+### ✨ 技术亮点
+- **多模态感知**: 激光雷达提供高精度的几何定位和建图能力，而 YOLO 和 BEV 处理则补充了任务语义以及近场障碍物感知。
+- **BEV/IPM 障碍物表征**: 利用单应性矩阵将前视相机图像投影至鸟瞰图平面，此方法对地面标志及低矮障碍物具有极强的适应性，且可为较高物体自动留出保守的安全冗余。
+- **目标去抖动 (Debouncing)**: 任务目标仅在检测框发生显著偏移时重新下发，避免了由于识别不稳定导致 Nav2 频繁重规划的问题。
+- **速度仲裁机制**: 介入 Nav2 输出与底盘执行之间的独立滤波层，具备针对停车线、防撞红区以及其它受限环境的安全关卡能力。
+- **两阶段 YOLO 训练流**: 目标检测模型首先通过 SVHN 数据集进行预热 (Warm-up) 训练，再使用机器人实拍场景数据进行微调，显著提升了小尺寸数字目标的识别准确率。
+
+### 📂 项目结构
+```text
+Apex-ROS2/
+├── car_ws/                         # 主机器人工作空间：感知、导航、控制与核心驱动
+│   └── src/
+│       ├── bev_obstacle_detector/  # BEV/IPM 障碍物检测与多点云融合
+│       ├── cmd_vel_tools/          # 速度仲裁、障碍物分析及停车线状态机
+│       ├── costmap_process/        # 语义地图与代价地图发布节点
+│       ├── distance_detector/      # 基于视觉掩膜的近场防撞检测
+│       ├── distance_detector_msg/  # 自定义距离检测消息
+│       ├── FAST_LIO_ROS2/          # FAST-LIO 激光惯性建图模块
+│       ├── navigation2-humble/     # 本地集成的 Nav2 导航栈
+│       ├── red_segment_msg/        # 自定义红区（禁行区）消息
+│       ├── robot_kcf/              # 视觉追踪功能包
+│       ├── ros2_astra_camera-master/ # Astra 相机 ROS 2 驱动
+│       ├── serial_ros2/            # 串口通信依赖包
+│       ├── turn_on_wheeltec_robot/ # 底盘驱动、TF 树、EKF 及传感器启动
+│       ├── usb_cam-ros2/           # USB 相机 ROS 2 驱动
+│       ├── wheeltec_robot_msg/     # 自定义机器人消息
+│       ├── wheeltec_robot_urdf/    # 机器人 URDF 模型及 RViz 资源
+│       └── yolo_detector/          # YOLO 识别、任务管理及系统集成启动入口
+├── ws_livox/                       # Livox 激光雷达独立工作空间
+│   └── src/
+│       ├── livox_ros_driver2/      # Livox ROS 2 驱动
+│       └── pointcloud_to_laserscan-humble/ # 点云转 LaserScan
+├── install_components.sh           # Ubuntu/ROS 依赖快速安装脚本
+└── README.md
+```
+
+### 📦 核心功能包
+| 功能包 | 所在工作区 | 作用 |
+| --- | --- | --- |
+| `yolo_detector` | `car_ws` | YOLOv8 视觉检测、任务管理、状态机决策与系统集成启动入口 |
+| `turn_on_wheeltec_robot` | `car_ws` | 底盘驱动、串口通信、TF 坐标树、EKF 滤波及传感器启动文件 |
+| `FAST_LIO_ROS2` | `car_ws` | 基于 FAST-LIO 的激光惯性里程计建图与定位 |
+| `navigation2-humble` | `car_ws` | 提供地图服务器、规划控制及生命周期管理的 Nav2 导航栈 |
+| `livox_ros_driver2` | `ws_livox` | Livox 激光雷达 (含 MID360) 的 ROS 2 驱动与配置文件 |
+| `pointcloud_to_laserscan-humble`| `ws_livox` | 3D 点云到 2D 激光雷达扫描线的转换 |
+| `bev_obstacle_detector` | `car_ws` | 鸟瞰图 (BEV/IPM) 障碍物检测，多点云融合与速度障碍分析 |
+| `distance_detector` | `car_ws` | 基于相机掩膜 (Mask) 的距离与危险区域检测 |
+| `costmap_process` | `car_ws` | 语义地图处理、代价地图发布及可视化 |
+| `cmd_vel_tools` | `car_ws` | 速度滤波、障碍物分析判断与防撞红区处理逻辑 |
+
+### 🚀 核心 Launch 文件
+| Launch 文件 | 用途 |
+| --- | --- |
+| `car_ws/src/yolo_detector/launch/main_nav.launch.py` | 核心集成启动文件。按顺序启动底盘、静态 TF、FAST-LIO、YOLO、距离检测、语义/代价地图节点、地图服务器、Nav2、Livox 及 Astra 相机。 |
+| `car_ws/src/yolo_detector/launch/multi_robot_startup.launch.py` | 面向导航的启动流，包含底盘、TF、FAST-LIO、地图服务器、Nav2 及 Livox。 |
+| `car_ws/src/yolo_detector/launch/yolo_detect.launch.py` | 启动 YOLO 目标检测节点，使用 `config/yolo_params.yaml`。 |
+| `car_ws/src/yolo_detector/launch/mission_manager.launch.py` | 启动任务管理器，使用 `config/mission_manager_params.yaml`。 |
+| `car_ws/src/FAST_LIO_ROS2/launch/mapping.launch.py` | 启动 `fastlio_mapping`，默认加载 `config/mid360.yaml`。 |
+| `ws_livox/src/livox_ros_driver2/launch_ROS2/msg_MID360_map_launch.py` | 启动 Livox 驱动及点云转换节点（适配 MID360 制图需求）。 |
+
+### ⚙️ 环境与构建
+
+#### 推荐的基础环境
+- Ubuntu 22.04
+- ROS 2 Humble
+- Python 3.10
+- `colcon`, `rosdep`, CMake 及 GNU 编译工具
+
+#### 1. 安装 ROS 依赖
+```bash
+sudo apt update
+sudo apt install -y python3-colcon-common-extensions python3-rosdep python3-pip git cmake build-essential
+sudo rosdep init || true
+rosdep update
+bash install_components.sh
+```
+
+#### 2. 安装 Livox-SDK2
+```bash
+git clone https://github.com/Livox-SDK/Livox-SDK2.git
+cd Livox-SDK2
+mkdir -p build && cd build
+cmake .. && make -j$(nproc)
+sudo make install
+sudo ldconfig
+```
+
+#### 3. 编译 Livox 工作空间
+```bash
+source /opt/ros/humble/setup.bash
+cd ws_livox/src/livox_ros_driver2
+./build.sh humble
+cd ../../..
+source install/setup.bash
+```
+
+#### 4. 编译主机器人工作空间
+```bash
+source /opt/ros/humble/setup.bash
+source ws_livox/install/setup.bash
+cd car_ws
+rosdep install --from-paths src --ignore-src -r -y
+colcon build --symlink-install
+source install/setup.bash
+cd ..
+```
+
+### 🏃 运行指南
+
+**新终端需 Source 环境变量：**
+```bash
+source /opt/ros/humble/setup.bash
+source ws_livox/install/setup.bash
+source car_ws/install/setup.bash
+```
+
+**综合导航启动：**
+```bash
+ros2 launch yolo_detector main_nav.launch.py \
+  use_rviz:=true \
+  launch_camera:=true \
+  launch_lidar:=true \
+  yolo_vis:=true \
+  distance_vis:=true \
+  sensor_startup_delay:=10.0
+```
+> 你可以通过传递 `map_yaml_file:=/绝对路径/map.yaml` 来切换地图。
+
+**单独模块启动测试：**
+```bash
+# 启动 Livox
+ros2 launch livox_ros_driver2 msg_MID360_map_launch.py
+# 启动 FAST-LIO
+ros2 launch fast_lio mapping.launch.py
+# 启动 YOLO 识别
+ros2 launch yolo_detector yolo_detect.launch.py enable_vis:=true
+```
+
+### 🔄 运行流程
+1. 启动 `turn_on_wheeltec_robot` 底盘控制节点。
+2. 发布 `map` 与 `camera_init` 之间的静态坐标系。
+3. 启动 FAST-LIO 模块提供里程计与建图。
+4. 激活 Nav2 地图服务器与导航栈。
+5. 在预设延时后，安全启动激光雷达及相机传感器节点。
+6. 启动视觉检测及代价地图相关处理管线。
+7. 任务管理器与 Nav2 协同，规划出合适的运动目标。
+8. 经过速度仲裁机制滤波后，下发控制指令到底盘。
+
+### 💻 开发与复现
+- 本综合工程强依赖对应硬件配置。若需要在非目标机器人上进行逻辑测试，请注意禁用需要依赖硬件的 Launch 文件。
+- BEV/IPM 识别依赖平坦地面假设，如遇坡道、剧烈俯仰震荡、强光环境等可能会降低系统可靠性。
+- 部分 Launch 文件包含了固定的绝对路径（如 RViz 及默认地图路径），实际部署时请通过 Launch 参数或修改源码进行适配调整。
+
+### 👥 团队分工
+本项目由团队成员协同开发，核心模块的分工如下：
+
+| 团队成员 | 核心负责方向 | 关联功能包 | 工作亮点 |
+| :--- | :--- | :--- | :--- |
+| **朱首赫** | 视觉检测、状态决策与 BEV 感知 | `yolo_detector`, `bev_obstacle_detector`, 任务决策流 | 实现数字目标识别与状态机决策，开发基于鸟瞰图 (BEV/IPM) 的底层避障策略，优化了整体感知数据管线。 |
+| **冯曦熠** | 导航算法与控制滤波 | `navigation2-humble`, `cmd_vel_tools` | 负责 Nav2 导航栈规划器的调参，设计并实现了速度控制仲裁机制。 |
+| **许震宇** | 模型训练与代价地图 | `yolo_detector` (训练侧), `costmap_process` | 负责 YOLO 目标检测模型的训练，开发了代价地图修改机制。 |
+
+### 📜 开源协议与版权声明
+- **代码许可**: 本项目的源代码采用 [MIT License](LICENSE) 开源协议。欢迎各位开发者基于此项目进行学习、修改与二次开发。
+- **文档许可与包装声明**: 本项目的**整体工程化包装、系统架构文档撰写及 README 维护**均由 **朱首赫** 独立完成。
+- 我们非常欢迎大家参考和借鉴本项目的架构设计与代码结构。但在开源分享的同时，也恳请各位开发者尊重原创作者的劳动成果与学术诚信：**请勿在未经授权的情况下，直接将本仓库的整体结构、文档文案或展示排版“原样照搬”。** 如果本项目在工程规范或文档架构上对您有所启发，在合理引用的同时注明出处，将是对开源贡献者最大的鼓励与支持。
+
+---
+<br>
+
+## 🇬🇧 English Version
+
+Apex-ROS2 is a ROS 2 Humble workspace for an autonomous Ackermann robot used in intelligent vehicle competition scenarios. It combines chassis control, Livox MID360 LiDAR, Astra/USB cameras, FAST-LIO mapping, Nav2 navigation, YOLOv8 perception, BEV obstacle processing, semantic costmap updates, mission management, and velocity arbitration into one deployable robot stack.
+
+### 📑 Table of Contents
+- [Technical Stack](#-technical-stack-1)
+- [System Architecture](#-system-architecture-1)
+- [Method Highlights](#-method-highlights-1)
+- [Repository Structure](#-repository-structure-1)
+- [Main Packages](#-main-packages-1)
+- [Key Launch Files](#-key-launch-files-1)
+- [Environment and Build](#-environment-and-build-1)
+- [Run](#-run-1)
+- [Runtime Flow](#-runtime-flow-1)
+- [Reproduction Notes](#-reproduction-notes-1)
+- [Development Workflow](#-development-workflow-1)
+- [Team Contributions](#-team-contributions-1)
+- [License & Authorship Statement](#-license--authorship-statement-1)
+
+### 🛠️ Technical Stack
 - **Runtime**: Ubuntu 22.04, ROS 2 Humble, Python 3.10, `colcon`
 - **Robot platform**: Ackermann mobile chassis with an STM32-based low-level controller
 - **Compute**: NVIDIA Jetson Orin Nano class edge computer
@@ -37,38 +258,7 @@ We strongly encourage learning from our architectural design and code structure.
 - **Perception**: YOLOv8 target detection, camera mask distance detection, GPU-oriented BEV/IPM obstacle processing
 - **Control safety**: `cmd_vel` filtering, stop-line state machine, obstacle analysis, velocity limiting
 
-## Repository Structure
-
-```text
-Apex-ROS2/
-├── car_ws/                         # Main robot, perception, navigation and control workspace
-│   └── src/
-│       ├── bev_obstacle_detector/  # BEV/IPM obstacle detection and point cloud fusion
-│       ├── cmd_vel_tools/          # Velocity arbitration, obstacle analysis and stop-line utilities
-│       ├── costmap_process/        # Semantic map and costmap publishing nodes
-│       ├── distance_detector/      # Mask-based visual proximity detection
-│       ├── distance_detector_msg/  # Custom distance detection messages
-│       ├── FAST_LIO_ROS2/          # FAST-LIO LiDAR-inertial mapping integration
-│       ├── navigation2-humble/     # Vendored Nav2 Humble stack used by this workspace
-│       ├── red_segment_msg/        # Custom red segment messages
-│       ├── robot_kcf/              # Visual tracking package
-│       ├── ros2_astra_camera-master/ # Astra camera ROS 2 driver
-│       ├── serial_ros2/            # Serial communication dependency package
-│       ├── turn_on_wheeltec_robot/ # Chassis driver, TF, EKF and sensor launch files
-│       ├── usb_cam-ros2/           # USB camera ROS 2 driver
-│       ├── wheeltec_robot_msg/     # Custom robot messages
-│       ├── wheeltec_robot_urdf/    # Robot URDF, meshes and RViz resources
-│       └── yolo_detector/          # YOLO detection, mission manager and system launch entrypoints
-├── ws_livox/                       # Livox LiDAR workspace
-│   └── src/
-│       ├── livox_ros_driver2/      # Livox ROS 2 driver and MID360 launch/config files
-│       └── pointcloud_to_laserscan-humble/
-├── install_components.sh           # Ubuntu/ROS dependency installation helper
-└── README.md
-```
-
-## System Architecture
-
+### 🏗️ System Architecture
 Apex-ROS2 is organized as a layered autonomous driving stack.
 
 1. **Hardware and sensor layer**
@@ -98,16 +288,43 @@ Apex-ROS2 is organized as a layered autonomous driving stack.
    - `cmd_vel_tools`, BEV processing, and distance detection filter or analyze velocity commands before they reach the chassis.
    - Stop-line handling uses a simple state machine: clear driving, controlled stopping, and holding/cooldown to avoid repeated triggers.
 
-## Method Highlights
-
+### ✨ Method Highlights
 - **Multi-modal perception**: LiDAR supports localization and geometry, while YOLO and BEV processing provide task semantics and near-field obstacle awareness.
 - **BEV/IPM obstacle representation**: The camera view is projected into a bird's-eye plane using a homography calibration. This is practical for ground markers and low obstacles, and the stretching effect of taller objects can increase conservative obstacle margins.
 - **Goal debouncing**: Mission targets are only republished when the detected goal moves beyond a threshold, reducing unnecessary Nav2 replanning caused by unstable detection boxes.
 - **Velocity arbitration**: A filtering layer between Nav2 output and chassis command acts as a safety gate for stop lines, red segments, and obstacle-related constraints.
 - **Two-stage YOLO training workflow**: The detection model was trained with an SVHN warm-up stage followed by real robot-scene data, improving deployment accuracy for small numbered targets.
 
-## Main Packages
+### 📂 Repository Structure
+```text
+Apex-ROS2/
+├── car_ws/                         # Main robot, perception, navigation and control workspace
+│   └── src/
+│       ├── bev_obstacle_detector/  # BEV/IPM obstacle detection and point cloud fusion
+│       ├── cmd_vel_tools/          # Velocity arbitration, obstacle analysis and stop-line utilities
+│       ├── costmap_process/        # Semantic map and costmap publishing nodes
+│       ├── distance_detector/      # Mask-based visual proximity detection
+│       ├── distance_detector_msg/  # Custom distance detection messages
+│       ├── FAST_LIO_ROS2/          # FAST-LIO LiDAR-inertial mapping integration
+│       ├── navigation2-humble/     # Vendored Nav2 Humble stack used by this workspace
+│       ├── red_segment_msg/        # Custom red segment messages
+│       ├── robot_kcf/              # Visual tracking package
+│       ├── ros2_astra_camera-master/ # Astra camera ROS 2 driver
+│       ├── serial_ros2/            # Serial communication dependency package
+│       ├── turn_on_wheeltec_robot/ # Chassis driver, TF, EKF and sensor launch files
+│       ├── usb_cam-ros2/           # USB camera ROS 2 driver
+│       ├── wheeltec_robot_msg/     # Custom robot messages
+│       ├── wheeltec_robot_urdf/    # Robot URDF, meshes and RViz resources
+│       └── yolo_detector/          # YOLO detection, mission manager and system launch entrypoints
+├── ws_livox/                       # Livox LiDAR workspace
+│   └── src/
+│       ├── livox_ros_driver2/      # Livox ROS 2 driver and MID360 launch/config files
+│       └── pointcloud_to_laserscan-humble/
+├── install_components.sh           # Ubuntu/ROS dependency installation helper
+└── README.md
+```
 
+### 📦 Main Packages
 | Package | Workspace | Role |
 | --- | --- | --- |
 | `yolo_detector` | `car_ws` | YOLOv8 perception, mission management, decision launch files and full-system startup entrypoints |
@@ -120,14 +337,8 @@ Apex-ROS2 is organized as a layered autonomous driving stack.
 | `distance_detector` | `car_ws` | Camera-mask-based distance and danger-zone detection |
 | `costmap_process` | `car_ws` | Semantic map processing, costmap publishing and visualization |
 | `cmd_vel_tools` | `car_ws` | Velocity limiting, obstacle analysis, debug node and red segment processing |
-| `wheeltec_robot_msg` | `car_ws` | Custom robot message definitions |
-| `distance_detector_msg` | `car_ws` | Custom distance detection message definitions |
-| `red_segment_msg` | `car_ws` | Custom red segment message definitions |
-| `wheeltec_robot_urdf` | `car_ws` | Robot model, meshes and RViz resources |
-| `robot_kcf` | `car_ws` | Visual tracking package |
 
-## Key Launch Files
-
+### 🚀 Key Launch Files
 | Launch file | Purpose |
 | --- | --- |
 | `car_ws/src/yolo_detector/launch/main_nav.launch.py` | Main integrated startup file. Starts chassis, static TF, FAST-LIO, YOLO, distance detection, semantic/costmap nodes, map server, Nav2, Livox and Astra camera with lifecycle sequencing. |
@@ -136,15 +347,9 @@ Apex-ROS2 is organized as a layered autonomous driving stack.
 | `car_ws/src/yolo_detector/launch/mission_manager.launch.py` | Starts the mission manager with `config/mission_manager_params.yaml`. |
 | `car_ws/src/FAST_LIO_ROS2/launch/mapping.launch.py` | Starts `fastlio_mapping`, defaulting to `config/mid360.yaml`. |
 | `ws_livox/src/livox_ros_driver2/launch_ROS2/msg_MID360_map_launch.py` | Starts the Livox driver and pointcloud-to-laserscan bridge for MID360 map usage. |
-| `car_ws/src/turn_on_wheeltec_robot/launch/base_serial.launch.py` | Starts the robot base serial driver. |
-| `car_ws/src/turn_on_wheeltec_robot/launch/wheeltec_camera.launch.py` | Starts camera-related robot components. |
-| `car_ws/src/bev_obstacle_detector/launch/bev_detector.launch.py` | Starts BEV obstacle detection. |
-| `car_ws/src/costmap_process/launch/map_vis.launch.py` | Starts costmap/map visualization nodes. |
 
-## Environment and Build
-
+### ⚙️ Environment and Build
 Recommended base environment:
-
 - Ubuntu 22.04
 - ROS 2 Humble
 - Python 3.10
@@ -154,18 +359,8 @@ Recommended base environment:
 - Astra and USB camera driver dependencies
 - Python perception dependencies such as OpenCV, NumPy, PyTorch and YOLO-related packages
 
-Hardware expected by the integrated launch files:
-
-- Ackermann mobile robot chassis
-- STM32-based chassis controller
-- Livox MID360 LiDAR
-- Astra camera and/or USB camera
-- Robot serial controller, defaulting to `/dev/wheeltec_controller` in `base_serial.launch.py`
-
-### 1. Install ROS dependencies
-
+#### 1. Install ROS dependencies
 After installing ROS 2 Humble, install the package dependencies used by the workspace:
-
 ```bash
 sudo apt update
 sudo apt install -y python3-colcon-common-extensions python3-rosdep python3-pip git cmake build-essential
@@ -174,29 +369,17 @@ rosdep update
 bash install_components.sh
 ```
 
-`install_components.sh` installs the ROS Humble camera, image, diagnostics, robot localization, PCL, BehaviorTree.CPP, OMPL, Ceres and related packages used by the robot workspace. On Jetson-class devices, it also creates a 4 GB swap file when `/swapfile` is not already present.
-
-### 2. Install Livox-SDK2
-
-Livox ROS Driver 2 links against Livox-SDK2, so install the SDK before building `ws_livox`:
-
+#### 2. Install Livox-SDK2
 ```bash
 git clone https://github.com/Livox-SDK/Livox-SDK2.git
 cd Livox-SDK2
-mkdir -p build
-cd build
-cmake ..
-make -j$(nproc)
+mkdir -p build && cd build
+cmake .. && make -j$(nproc)
 sudo make install
 sudo ldconfig
 ```
 
-Return to the repository root before building the ROS workspaces.
-
-### 3. Build the Livox workspace
-
-The Livox driver provides a helper script for ROS 2 Humble:
-
+#### 3. Build the Livox workspace
 ```bash
 source /opt/ros/humble/setup.bash
 cd ws_livox/src/livox_ros_driver2
@@ -205,18 +388,7 @@ cd ../../..
 source install/setup.bash
 ```
 
-If you build the whole workspace directly, keep the same ROS environment active:
-
-```bash
-source /opt/ros/humble/setup.bash
-cd ws_livox
-colcon build --symlink-install --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humble
-source install/setup.bash
-cd ..
-```
-
-### 4. Build the main robot workspace
-
+#### 4. Build the main robot workspace
 ```bash
 source /opt/ros/humble/setup.bash
 source ws_livox/install/setup.bash
@@ -227,87 +399,16 @@ source install/setup.bash
 cd ..
 ```
 
-For a new terminal, source both workspaces in order:
+### 🏃 Run
 
+**Sourcing environments in a new terminal:**
 ```bash
 source /opt/ros/humble/setup.bash
 source ws_livox/install/setup.bash
 source car_ws/install/setup.bash
 ```
 
-### 5. RViz configuration
-
-The default Nav2 RViz view is stored at:
-
-```text
-car_ws/src/navigation2-humble/nav2_bringup/rviz/nav2_default_view.rviz
-```
-
-Use it when launching Nav2 with RViz or open it directly with:
-
-```bash
-rviz2 -d car_ws/src/navigation2-humble/nav2_bringup/rviz/nav2_default_view.rviz
-```
-
-## Run
-
-### Livox MID360 driver and point cloud bridge
-
-```bash
-source /opt/ros/humble/setup.bash
-source ws_livox/install/setup.bash
-ros2 launch livox_ros_driver2 msg_MID360_map_launch.py
-```
-
-### FAST-LIO mapping
-
-```bash
-source /opt/ros/humble/setup.bash
-source car_ws/install/setup.bash
-ros2 launch fast_lio mapping.launch.py
-```
-
-The default FAST-LIO configuration is:
-
-```text
-car_ws/src/FAST_LIO_ROS2/config/mid360.yaml
-```
-
-### YOLO detection
-
-```bash
-source /opt/ros/humble/setup.bash
-source car_ws/install/setup.bash
-ros2 launch yolo_detector yolo_detect.launch.py enable_vis:=true
-```
-
-YOLO configuration and model assets are installed from:
-
-```text
-car_ws/src/yolo_detector/config/yolo_params.yaml
-car_ws/src/yolo_detector/models/
-car_ws/src/yolo_detector/utils/
-```
-
-### Mission manager
-
-```bash
-source /opt/ros/humble/setup.bash
-source car_ws/install/setup.bash
-ros2 launch yolo_detector mission_manager.launch.py enable_debug:=false
-```
-
-### Integrated autonomous navigation stack
-
-```bash
-source /opt/ros/humble/setup.bash
-source ws_livox/install/setup.bash
-source car_ws/install/setup.bash
-ros2 launch yolo_detector main_nav.launch.py
-```
-
-Common launch arguments:
-
+**Integrated autonomous navigation stack:**
 ```bash
 ros2 launch yolo_detector main_nav.launch.py \
   use_rviz:=true \
@@ -317,23 +418,19 @@ ros2 launch yolo_detector main_nav.launch.py \
   distance_vis:=true \
   sensor_startup_delay:=10.0
 ```
+> Change map by appending `map_yaml_file:=/absolute/path/to/map.yaml`
 
-`main_nav.launch.py` defaults to this map path:
-
-```text
-/Map_yaml/circuit/map_huandao.yaml
-```
-
-Use `map_yaml_file:=...` to provide the map for the current robot or development machine:
-
+**Individual modules:**
 ```bash
-ros2 launch yolo_detector main_nav.launch.py map_yaml_file:=/absolute/path/to/map.yaml
+# Livox driver
+ros2 launch livox_ros_driver2 msg_MID360_map_launch.py
+# FAST-LIO mapping
+ros2 launch fast_lio mapping.launch.py
+# YOLO detection
+ros2 launch yolo_detector yolo_detect.launch.py enable_vis:=true
 ```
 
-## Runtime Flow
-
-A typical competition run follows this sequence:
-
+### 🔄 Runtime Flow
 1. Start the robot chassis driver through `turn_on_wheeltec_robot`.
 2. Publish the static transform between `map` and `camera_init`.
 3. Start FAST-LIO for localization or mapping.
@@ -344,87 +441,19 @@ A typical competition run follows this sequence:
 8. Let mission management and Nav2 coordinate target selection and motion.
 9. Apply velocity filtering and obstacle analysis before sending motion commands to the chassis.
 
-## Reproduction Notes
-
+### 💻 Reproduction Notes
 - The integrated system is hardware-dependent. For desktop inspection, build the workspaces first and launch individual modules before running `main_nav.launch.py`.
-- `build/`, `install/`, and `log/` are generated by `colcon`.
-- Some launch files contain machine-specific absolute paths, such as map and RViz paths. Override them with launch arguments or local configuration before deployment.
 - Check serial device names, camera calibration, LiDAR configuration, TF frames, and map paths on the target robot before running the full stack.
 - The BEV/IPM pipeline assumes a mostly planar ground surface. Slopes, camera pitch/roll vibration, strong lighting changes, and reflective surfaces can reduce reliability.
 
-## Development Workflow
-
-```bash
-source /opt/ros/humble/setup.bash
-source ws_livox/install/setup.bash
-source car_ws/install/setup.bash
-
-# Inspect available packages
-ros2 pkg list | grep -E "yolo_detector|fast_lio|livox|wheeltec|costmap|distance"
-
-# Launch individual modules during debugging
-ros2 launch yolo_detector yolo_detect.launch.py
-ros2 launch fast_lio mapping.launch.py
-ros2 launch yolo_detector mission_manager.launch.py
-```
-
-For integrated tests, start from `main_nav.launch.py` and disable hardware-dependent parts with launch arguments when testing away from the robot.
-
-
-<br><br>
-
-# 🇨🇳 中文文档 (Chinese Version)
-
-[🇬🇧 English Version (英文版)](#apex-ros2)
-
-本仓库是一个面向智能车比赛的 ROS 2 综合工程，包含车体底盘驱动、激光雷达与相机接入、建图定位、导航规划、视觉检测、BEV 障碍物感知、代价地图处理和速度控制等模块。
-
-## 👥 团队分工
-
-本项目由团队成员协同开发，核心模块的分工如下：
-
-| 团队成员 | 核心负责方向 | 关联功能包 | 工作亮点 |
+### 👥 Team Contributions
+| Team Member | Core Responsibilities | Main Packages | Work Highlights |
 | :--- | :--- | :--- | :--- |
-| **朱首赫** | 视觉检测、状态决策与 BEV 感知 | `yolo_detector`, `bev_obstacle_detector`, 任务决策流 | 实现数字目标识别与状态机决策，开发基于鸟瞰图 (BEV/IPM) 的底层避障策略，优化了整体感知数据管线。 |
-| **冯曦熠** | 导航算法与控制滤波 | `navigation2-humble`, `cmd_vel_tools` | 负责 Nav2 导航栈规划器的调参，设计并实现了速度控制仲裁机制。 |
-| **许震宇** | 模型训练与代价地图 | `yolo_detector` (训练侧), `costmap_process` | 负责 YOLO 目标检测模型的训练，开发了代价地图修改机制。 |
+| **Zhu Shouhe** | Vision Detection, Decision Making, BEV Perception | `yolo_detector`, `bev_obstacle_detector`, Mission Manager | Implemented digit target recognition and state machine decision logic. Developed a low-level obstacle avoidance strategy based on Bird's-Eye View (BEV/IPM) and optimized the overall perception data pipeline. |
+| **Feng Xiyi** | Navigation Algorithms, Velocity Control | `navigation2-humble`, `cmd_vel_tools` | Responsible for parameter tuning of the Nav2 navigation stack planners. Designed and implemented the velocity control arbitration mechanism. |
+| **Xu Zhenyu** | Model Training, Costmap Modification | `yolo_detector` (Training), `costmap_process` | Responsible for training the YOLO target detection model. Developed the costmap modification mechanisms. |
 
-## 📜 开源协议与版权声明
-
-### 代码许可
-本项目的源代码采用 [MIT License](LICENSE) 开源协议。欢迎各位开发者基于此项目进行学习、修改与二次开发。
-
-### 文档许可与包装声明
-本项目的**整体工程化包装、系统架构文档撰写及 README 维护**均由 **朱首赫** 独立完成。
-
-我们非常欢迎大家参考和借鉴本项目的架构设计与代码结构。但在开源分享的同时，也恳请各位开发者尊重原创作者的劳动成果与学术诚信：**请勿在未经授权的情况下，直接将本仓库的整体结构、文档文案或展示排版“原样照搬”。** 如果本项目在工程规范或文档架构上对您有所启发，在合理引用的同时注明出处，将是对开源贡献者最大的鼓励与支持。
-
----
-
-## 技术栈 (Technical Stack)
-
-- **运行环境**: Ubuntu 22.04, ROS 2 Humble, Python 3.10, `colcon`
-- **机器人平台**: Ackermann 移动底盘 (搭载 STM32 底层控制器)
-- **计算平台**: NVIDIA Jetson Orin Nano 级边缘计算设备
-- **传感器**: Livox MID360 激光雷达, Astra Pro Plus 深度相机, USB 摄像头, 底盘里程计/IMU
-- **定位建图**: FAST-LIO, AMCL/Nav2 定位, 点云转激光扫描数据转换
-- **导航控制**: Nav2 Humble, Smac Hybrid-A* 规划算法, Regulated Pure Pursuit 局部控制, 语义代价地图层
-- **视觉感知**: YOLOv8 目标检测, 基于 Mask 的相机距离检测, 基于 GPU 的 BEV/IPM 障碍物处理
-- **控制安全**: `cmd_vel` 滤波机制, 停车线状态机, 速度限制与障碍物分析
-
-## 核心功能包 (Main Packages)
-
-| 功能包 (Package) | 作用 (Role) |
-| --- | --- |
-| `yolo_detector` | YOLOv8 视觉检测、任务管理、状态机决策与系统启动入口 |
-| `turn_on_wheeltec_robot` | 底盘驱动、串口通信、TF 坐标树、EKF 滤波及传感器启动文件 |
-| `FAST_LIO_ROS2` | 基于 FAST-LIO 的激光惯性里程计建图与定位 |
-| `navigation2-humble` | 提供地图服务器、规划控制及生命周期管理的 Nav2 导航栈 |
-| `livox_ros_driver2` | Livox 激光雷达 (含 MID360) 的 ROS 2 驱动与配置文件 |
-| `bev_obstacle_detector` | 鸟瞰图 (BEV/IPM) 障碍物检测，多点云融合与速度障碍分析 |
-| `distance_detector` | 基于相机掩膜 (Mask) 的距离与危险区域检测 |
-| `costmap_process` | 语义地图处理、代价地图发布及可视化 |
-| `cmd_vel_tools` | 速度滤波、障碍物分析判断与防撞红区处理逻辑 |
-
-> 注：关于完整的编译、运行指南及详细的 Launch 文件说明，由于跨平台配置繁琐，请参考上方 [English Version](#apex-ros2) 中的技术细节描述。
-
+### 📜 License & Authorship Statement
+- **Code License**: The source code of this project is released under the [MIT License](LICENSE). You are welcome to use, modify, and distribute the code for learning and development.
+- **Documentation Authorship**: The **overall engineering architecture, project packaging, and documentation (including this README)** were independently designed and written by **Zhu Shouhe**. 
+- We strongly encourage learning from our architectural design and code structure. However, out of respect for academic integrity and the original author's effort, we kindly request that developers **do not directly copy the repository's structural layout, documentation wording, or project presentation**. If our repository serves as a reference for your project's architecture or documentation, a proper citation or acknowledgment is highly appreciated.
